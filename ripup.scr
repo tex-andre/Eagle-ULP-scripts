@@ -1,0 +1,12 @@
+# Script desenvolvido por André Teixeira.
+#
+# A função deste sript é ser um atalho de modo a simplificar
+# a criação de PCBs. Este sript irá usar comandos de modo a
+# fazer RIPUP a todos os polygons existentes numa board.
+
+
+
+RIPUP @;
+
+
+#Easy

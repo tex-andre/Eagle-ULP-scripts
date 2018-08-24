@@ -1,0 +1,141 @@
+#usage "pt:<b>Descrição: </b>ULP para criar ou editar atributos dos componentes de uma determinada biblioteca."
+		"<p><b>Instruções: </b>Correr o ulp na biblioteca em causa e selecionar um ficheiro com "
+		"extenção \".csv\" contendo as intruções para edição dos atributos. <br>"
+		"Estas instruções devem de estar devidamente formatadas da seguinte forma:</p>"
+		"<br>ATTRIBUTE;Device;Package;Attribute;'Attribute value'<p><b>Exemplo: </b><br>"
+		"ATTRIBUTE;MAX1737;QSOP28;PROD_ID;'ESA0000-0000'</p>"
+		"Ou<br>Para eliminar o atributo:<br>ATTRIBUTE;MAX1737;QSOP28;PROD_ID;DELETE<br>"
+		"Cada elemento separado por \";\" corresponde a uma coluna do ficheiro csv.<br>"
+		"<b>Importante: O último campo, \"Attribute value\" deve estar entre <br>plicas, \" ' \".</b>"
+		"<p><b>Autor</b>: André Teixeira</p>"
+       
+
+string Version = "1.0";    // 22-08-2018 
+
+string ScriptFile = argv[1];
+string cmdScript, cmd, s;
+
+string Lines[], Attribut[], AttValue[], DeviceList[], PackageList[];
+int    	setAtt[];
+int    	cntl = 0;
+int    	cntAtt = 0;
+int 	cntErro = 0;
+
+if (argv[1] == "?") {
+  dlgMessageBox(usage, "OK");
+}
+
+void test(void) {
+  dlgDialog(filename(argv[0]) + " Script") {
+    dlgTextView(cmd);
+    dlgHBoxLayout {
+      dlgPushButton("OK") dlgAccept();
+      dlgPushButton("Abbruch") { dlgReject(); exit(-2); }
+    }
+  };
+  return;
+}
+
+
+string check_varname(string s) {  // 2008-09-04
+  if(s == "''") return s;
+  return "'"+s+"'";
+}
+
+
+void readScript(void) {
+  cntl = fileread(Lines, ScriptFile);
+  for (int n = 0; n < cntl; n++) {
+    if (strstr(Lines[n], "ATTRIBUTE") == 0) {
+      string a[];
+      int cnta = strsplit(a, Lines[n], ';');
+	  DeviceList[cntAtt] = a[1];
+	  PackageList[cntAtt] = a[2];
+      Attribut[cntAtt] = a[3];
+      AttValue[cntAtt] = a[4];
+      for (int an = 5; an < cnta; an++) { // complete parameter with space
+		AttValue[cntAtt] += " "+a[an];
+      }
+      cntAtt++;
+    }
+  }
+  return;
+}
+
+
+if  (library) {
+  library(L) {
+    if (ScriptFile) {
+      string fg[];
+      int cntf = fileglob(fg, path_scr[0]+"/"+ScriptFile);
+      if (!cntf) ScriptFile = "";
+      else ScriptFile = fg[0];
+    }
+    if (!ScriptFile) ScriptFile = dlgFileOpen("Select a SCRIPT with ATTRIBUTE commands to run in all DEVICESETS", path_scr[0], "*.csv");
+    if (!ScriptFile) exit(0);
+    readScript();
+    cmdScript = filesetext(L.name, "~.scr");
+    L.devicesets(DS) {
+		int j;
+		for(j = 0; j< cntAtt; j++){
+			if(strstr(DS.name, DeviceList[j]) == 0){
+				sprintf(s, "EDIT %s.DEV;\n", DS.name);
+				cmd += s;
+				int n;
+				DS.devices(D) {
+					if(strstr(D.footprint.name, PackageList[j]) == 0){
+						string t[];
+						int nt = strsplit(t, D.technologies, ' ');
+						sprintf(s, "PACKAGE %s;\n", check_varname(D.name) );
+						cmd += s;
+						for (int i = 0; i < nt; i++) {
+						  sprintf(s, "TECHNOLOGY %s;\n", t[i]);
+						  cmd += s;
+						  for (n = 0; n < cntAtt; n ++) setAtt[n] = 1;  // preset flags
+						  D.attributes(A, t[i]) {
+							for (n = 0; n < cntAtt; n++) {
+							  status(DS.name+":"+D.name+":"+t[i]);
+
+							  if (A.name == Attribut[n]) {
+								if (A.value || !AttValue[n])  setAtt[n] = 0;   
+							  }
+							}
+						  }
+						  //for (n = 0; n < cntAtt; n ++) {
+							if (setAtt[j] || AttValue[j] == "DELETE") {
+							  sprintf(s, "ATTRIBUTE %s %s;\n", Attribut[j], AttValue[j]);
+							  cmd+=s;
+							  s="";
+							}
+						  //}
+						}
+					}
+				}
+			}	
+		}
+    }
+ }
+ 
+	int t = 0;
+	string result = "Linha | Device | Package\n\n";
+	string resultCnt;
+	for(t; t<cntAtt; t++)
+		if(!setAtt[t]){
+			sprintf(result, "%s%d|\t%s\t|\t%s\n", result, t + 1, DeviceList[t], PackageList[t]);
+			cntErro++;
+		}
+		dlgDialog("Atributos não inseridos"){
+			dlgLabel("Lista de atributos não inseridos\t\t\t\t\t\t\t\t");
+			dlgSpacing(20);
+			dlgHBoxLayout{
+				dlgTextView(result); // Imprime lista de componentes não encontrados
+			}
+			sprintf(resultCnt, "Foram inseridos %d atributos de um total de %d.", cntAtt - cntErro, cntAtt); // Apresenta contagem de alterações
+			dlgLabel(resultCnt);
+		};
+  output(cmdScript, "wtD") printf("%s", cmd); // cria ficheiro scrip com alterações
+  sprintf(s, "SCRIPT '%s';\n", cmdScript);
+  exit(s);
+}
+
+else dlgMessageBox("Start this ULP from a Library", "OK");

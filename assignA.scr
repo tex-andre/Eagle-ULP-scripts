@@ -1,0 +1,43 @@
+# Sript criado por André Teixeira com base em default-assign.scr
+#
+# 
+# Este script predefine um conjunto de comandos a serem usados como atalhos
+
+
+# GENERAL:
+ASSIGN C+X MOVE;
+ASSIGN C+Z UNDO;
+ASSIGN C+Y REDO;
+ASSIGN C+C COPY;
+ASSIGN C+A ADD;
+ASSIGN C+S GROUP;
+ASSIGN C+D DELETE;
+ASSIGN C+W WIRE;
+ASSIGN C+I INFO;
+ASSIGN C+T TEXT;
+ASSIGN CS+N NAME;
+ASSIGN CS+P POLYGON;
+ASSIGN C+F 'RUN find.ulp';
+
+
+BRD:
+ASSIGN C+E ERRORS;
+#ASSIGN CS+D 'DRC;';  
+#ASSIGN CS+D DRC;   
+ASSIGN CS+V VALUE;
+ASSIGN C+W ROUTE;
+ASSIGN C+R RIPUP;
+#ASSIGN A+R RATSNEST;
+ASSIGN C+H HOLE;
+
+
+
+
+
+SCH:
+ASSIGN C+E ERRORS;
+ASSIGN CS+E ERC;
+ASSIGN CS+V VALUE;
+ASSIGN C+W NET;
+
+
